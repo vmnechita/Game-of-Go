@@ -1,3 +1,32 @@
+"""
+GO Board Game
+
+This program implements a simple GO board game using the Pygame library. The game supports two modes:
+1. Human vs. Human
+2. Human vs. Computer
+
+The board is a 9x9, 13x13 or 19x19 grid with graphical representation. Players can make moves by clicking on empty intersections.
+The game follows standard GO rules, including capturing stones and recognizing the end of the game.
+
+Usage:
+python main.py <opponent_type>
+
+Arguments:
+- opponent_type (str): Specifies the opponent type. Use 'human' for a human opponent and 'computer' for a computer opponent.
+
+Game Features:
+- Graphical representation of the GO board.
+- Support for human vs. human and human vs. computer modes.
+- Basic game rules, capturing stones, and recognizing the end of the game.
+- Simple scoring and a dialog at the end of the game.
+
+File Structure:
+- Constants define various aspects of the game, such as colors, board size, and button dimensions.
+- The main game loop is implemented in functions play_against_human() and play_against_computer().
+- Functions for drawing the board, handling mouse events, and determining possible moves are provided.
+- The game uses a basic Breadth-First Search (BFS) algorithm to calculate territory and determine the winner.
+"""
+
 import random
 from collections import deque
 
@@ -33,6 +62,9 @@ move_counter = 1
 
 
 def draw_board():
+    """
+    Draw the GO board with graphical representation of stones, grid, and other elements.
+    """
     screen.fill(BACKGROUND_COLOR)
 
     for i in range(GRID_SIZE - 1):
@@ -69,6 +101,15 @@ def draw_board():
 
 
 def show_endgame_dialog(winner):
+    """
+        Display an endgame dialog with the winner and an option to restart the game.
+
+        Args:
+        - winner (str): The winner of the game ('Black' or 'White').
+
+        Returns:
+        - bool: True if the player chooses to restart the game.
+    """
     dialog_width = 300
     dialog_height = 150
 
@@ -100,6 +141,20 @@ def show_endgame_dialog(winner):
 
 
 def bfs_endgame(go_board, row, col, black_score, white_score, visited):
+    """
+        Perform Breadth-First Search (BFS) to calculate territory and update scores in the endgame.
+
+        Args:
+        - go_board (list): The current state of the GO board.
+        - row (int): Starting row for BFS.
+        - col (int): Starting column for BFS.
+        - black_score (int): Current score for the black player.
+        - white_score (int): Current score for the white player.
+        - visited (list): 2D list to keep track of visited intersections.
+
+        Returns:
+        - list: Updated black and white scores after BFS.
+        """
     visited[row][col] = True
     queue = deque([(row, col)])
     territory_size = 0
@@ -111,8 +166,7 @@ def bfs_endgame(go_board, row, col, black_score, white_score, visited):
         neighbors = [(current_row - 1, current_col), (current_row + 1, current_col), (current_row, current_col - 1),
                      (current_row, current_col + 1)]
         for neighbor_row, neighbor_col in neighbors:
-            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][
-                neighbor_col]:
+            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][neighbor_col]:
                 if go_board[neighbor_row][neighbor_col] == 0:
                     visited[neighbor_row][neighbor_col] = True
                     queue.append((neighbor_row, neighbor_col))
@@ -130,6 +184,18 @@ def bfs_endgame(go_board, row, col, black_score, white_score, visited):
 
 
 def calculate_winner(go_board, black_captured, white_captured, komi):
+    """
+        Calculate the winner of the game based on scores and komi.
+
+        Args:
+        - go_board (list): The final state of the GO board.
+        - black_captured (int): The number of stones captured by the black player.
+        - white_captured (int): The number of stones captured by the white player.
+        - komi (float): Komi value for the white player.
+
+        Returns:
+        - str: The winner of the game ('Black' or 'White').
+    """
     black_score = black_captured
     white_score = white_captured + komi
 
@@ -146,6 +212,19 @@ def calculate_winner(go_board, black_captured, white_captured, komi):
 
 
 def bfs_atari(go_board, row, col, visited, color):
+    """
+        Perform Breadth-First Search (BFS) to identify a group in Atari and its liberties.
+
+        Args:
+        - go_board (list): The current state of the GO board.
+        - row (int): Starting row for BFS.
+        - col (int): Starting column for BFS.
+        - visited (list): 2D list to keep track of visited intersections.
+        - color (int): The color of the stones (1 for black, 2 for white).
+
+        Returns:
+        - list: A list containing the group and its liberties.
+    """
     visited[row][col] = True
     queue = deque([(row, col)])
     group = []
@@ -169,7 +248,17 @@ def bfs_atari(go_board, row, col, visited, color):
         return [[], ()]
 
 
-def calculate_all_atari_groups(go_board, color):  # 1: black, 2: white
+def calculate_all_atari_groups(go_board, color):
+    """
+        Calculate all groups in Atari for a given color.
+
+        Args:
+        - go_board (list): The current state of the GO board.
+        - color (int): The color of the stones (1 for black, 2 for white).
+
+        Returns:
+        - list: A list of groups in Atari, each containing the group and its liberties.
+    """
     atari = []
     visited = [[False] * GRID_SIZE for _ in range(GRID_SIZE)]
     for row in range(GRID_SIZE):
@@ -182,6 +271,16 @@ def calculate_all_atari_groups(go_board, color):  # 1: black, 2: white
 
 
 def calculate_possible_moves(go_board, color):
+    """
+        Calculate possible moves for the given player color.
+
+        Args:
+        - go_board (list): The current state of the GO board.
+        - color (int): The color of the stones (1 for black, 2 for white).
+
+        Returns:
+        - list: A list of possible moves as (row, col) tuples.
+    """
     answer = []
     atari_list = calculate_all_atari_groups(go_board, 3 - color)
     for row in range(GRID_SIZE):
@@ -214,6 +313,9 @@ def calculate_possible_moves(go_board, color):
 
 
 def play_against_human():
+    """
+        Main game loop for human vs. human mode.
+    """
     global board, current_player, move_counter
     precedent_pass = False
     black_captured = white_captured = 0
@@ -268,6 +370,9 @@ def play_against_human():
 
 
 def play_against_computer():
+    """
+        Main game loop for human vs. computer mode.
+    """
     global board, current_player, move_counter
     precedent_pass = False
     black_captured = white_captured = 0
