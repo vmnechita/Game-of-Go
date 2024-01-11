@@ -1,3 +1,4 @@
+import random
 from collections import deque
 
 import pygame
@@ -212,54 +213,153 @@ def calculate_possible_moves(go_board, color):
     return answer
 
 
+def play_against_human():
+    global board, current_player, move_counter
+    precedent_pass = False
+    black_captured = white_captured = 0
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                moves = calculate_possible_moves(board, current_player)
 
-precedent_pass = False
-black_captured = white_captured = 0
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
-            row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
-            moves = calculate_possible_moves(board, current_player)
+                if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
+                    if precedent_pass:
+                        result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
+                        if result:
+                            board = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                            current_player = 1
+                            move_counter = 1
+                            precedent_pass = False
+                    else:
+                        current_player = 3 - current_player
+                        move_counter += 1
+                        precedent_pass = True
 
-            if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
-                if precedent_pass:
-                    result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
-                    if result:
-                        board = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
-                        current_player = 1
-                        move_counter = 1
-                        precedent_pass = False
-                else:
+                elif (row, col) in moves:
+                    atari_list = calculate_all_atari_groups(board, 3 - current_player)
+                    for item in atari_list:
+                        if item[1] == (row, col):
+                            for piece in item[0]:
+                                board[piece[0]][piece[1]] = 0
+                            if current_player == 1:
+                                black_captured += len(item[0])
+                            else:
+                                white_captured += len(item[0])
+
+                    board[row][col] = current_player
                     current_player = 3 - current_player
                     move_counter += 1
-                    precedent_pass = True
+                    precedent_pass = False
 
-            elif (row, col) in moves:
-                atari_list = calculate_all_atari_groups(board, 3 - current_player)
-                for item in atari_list:
-                    if item[1] == (row, col):
-                        for piece in item[0]:
-                            board[piece[0]][piece[1]] = 0
-                        if current_player == 1:
-                            black_captured += len(item[0])
-                        else:
+                #print("Black atari: ", calculate_all_atari_groups(board, 1))
+                #print("White atari: ", calculate_all_atari_groups(board, 2))
+                #print("Black captured: ", black_captured)
+                #print("White captured: ", white_captured)
+
+        draw_board()
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
+
+
+def play_against_computer():
+    global board, current_player, move_counter
+    precedent_pass = False
+    black_captured = white_captured = 0
+    computer_player = random.randint(1, 2)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif current_player == computer_player:
+                moves = calculate_possible_moves(board, computer_player)
+                pass_random = random.randint(1, 10)
+                if len(moves) == 0 or pass_random == 1:
+                     if precedent_pass:
+                        result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
+                        if result:
+                            board = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                            current_player = 1
+                            move_counter = 1
+                            precedent_pass = False
+                     else:
+                        current_player = 3 - current_player
+                        move_counter += 1
+                        precedent_pass = True
+                else:
+                    random_move = random.choice(moves)
+                    row, col = random_move
+
+                    atari_list = calculate_all_atari_groups(board, 3 - computer_player)
+                    for item in atari_list:
+                        if item[1] == (row, col):
+                            for piece in item[0]:
+                                board[piece[0]][piece[1]] = 0
                             white_captured += len(item[0])
 
-                board[row][col] = current_player
-                current_player = 3 - current_player
-                move_counter += 1
-                precedent_pass = False
+                    board[row][col] = computer_player
+                    current_player = 3 - current_player
+                    move_counter += 1
+                    precedent_pass = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                moves = calculate_possible_moves(board, current_player)
 
-            #print("Black atari: ", calculate_all_atari_groups(board, 1))
-            #print("White atari: ", calculate_all_atari_groups(board, 2))
-            #print("Black captured: ", black_captured)
-            #print("White captured: ", white_captured)
+                if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (
+                            HEIGHT + PASS_BUTTON_HEIGHT) // 2:
+                    if precedent_pass:
+                        result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
+                        if result:
+                            board = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                            current_player = 1
+                            move_counter = 1
+                            precedent_pass = False
+                    else:
+                        current_player = 3 - current_player
+                        move_counter += 1
+                        precedent_pass = True
 
-    draw_board()
-    pygame.display.flip()
-    pygame.time.Clock().tick(60)
+                elif (row, col) in moves:
+                    atari_list = calculate_all_atari_groups(board, 3 - current_player)
+                    for item in atari_list:
+                        if item[1] == (row, col):
+                            for piece in item[0]:
+                                board[piece[0]][piece[1]] = 0
+                            if current_player == 1:
+                                black_captured += len(item[0])
+                            else:
+                                white_captured += len(item[0])
+
+                    board[row][col] = current_player
+                    current_player = 3 - current_player
+                    move_counter += 1
+                    precedent_pass = False
+
+        draw_board()
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
+
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Wrong number of arguments!")
+        sys.exit(1)
+
+    opponent_type = sys.argv[1]
+
+    if opponent_type == "human":
+        play_against_human()
+    elif opponent_type == "computer":
+        play_against_computer()
+    else:
+        print("Invalid opponent type. Please use 'computer' or 'human'!")
