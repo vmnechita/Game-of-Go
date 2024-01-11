@@ -8,11 +8,11 @@ pygame.init()
 
 # Constants
 GRID_SIZE = 9
-Board_Size = 721
-Border_Size = 50
-Right_Empty_Space_Size = 200
-WIDTH, HEIGHT = Board_Size + 2 * Border_Size + Right_Empty_Space_Size, Board_Size + 2 * Border_Size
-CELL_SIZE = Board_Size // (GRID_SIZE - 1)
+BOARD_SIZE = 721
+BORDER_SIZE = 50
+RIGHT_EMPTY_SPACE_SIZE = 200
+WIDTH, HEIGHT = BOARD_SIZE + 2 * BORDER_SIZE + RIGHT_EMPTY_SPACE_SIZE, BOARD_SIZE + 2 * BORDER_SIZE
+CELL_SIZE = BOARD_SIZE // (GRID_SIZE - 1)
 PASS_BUTTON_WIDTH = 100
 PASS_BUTTON_HEIGHT = 40
 PASS_BUTTON_COLOR = (200, 200, 200)
@@ -36,23 +36,23 @@ def draw_board():
     screen.fill(BACKGROUND_COLOR)
 
     for i in range(GRID_SIZE - 1):
-        pygame.draw.line(screen, GRID_COLOR, (Border_Size + i * CELL_SIZE, Border_Size),
-                         (Border_Size + i * CELL_SIZE, Border_Size + Board_Size), 1)
-        pygame.draw.line(screen, GRID_COLOR, (Border_Size, Border_Size + i * CELL_SIZE),
-                         (Border_Size + Board_Size, Border_Size + i * CELL_SIZE), 1)
+        pygame.draw.line(screen, GRID_COLOR, (BORDER_SIZE + i * CELL_SIZE, BORDER_SIZE),
+                         (BORDER_SIZE + i * CELL_SIZE, BORDER_SIZE + BOARD_SIZE), 1)
+        pygame.draw.line(screen, GRID_COLOR, (BORDER_SIZE, BORDER_SIZE + i * CELL_SIZE),
+                         (BORDER_SIZE + BOARD_SIZE, BORDER_SIZE + i * CELL_SIZE), 1)
 
-    pygame.draw.rect(screen, LINE_COLOR, (Border_Size, Border_Size, Board_Size, Board_Size), 1)
+    pygame.draw.rect(screen, LINE_COLOR, (BORDER_SIZE, BORDER_SIZE, BOARD_SIZE, BOARD_SIZE), 1)
 
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if board[row][col] == 1:
-                pygame.draw.circle(screen, STONE_BLACK, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE),
+                pygame.draw.circle(screen, STONE_BLACK, (BORDER_SIZE + col * CELL_SIZE, BORDER_SIZE + row * CELL_SIZE),
                                    CELL_SIZE // 2 - 5)
             elif board[row][col] == 2:
-                pygame.draw.circle(screen, STONE_WHITE, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE),
+                pygame.draw.circle(screen, STONE_WHITE, (BORDER_SIZE + col * CELL_SIZE, BORDER_SIZE + row * CELL_SIZE),
                                    CELL_SIZE // 2 - 5)
 
-    pass_button_rect = pygame.Rect(WIDTH - Right_Empty_Space_Size + (Right_Empty_Space_Size - PASS_BUTTON_WIDTH) // 2,
+    pass_button_rect = pygame.Rect(WIDTH - RIGHT_EMPTY_SPACE_SIZE + (RIGHT_EMPTY_SPACE_SIZE - PASS_BUTTON_WIDTH) // 2,
                                    (HEIGHT - PASS_BUTTON_HEIGHT) // 2,
                                    PASS_BUTTON_WIDTH, PASS_BUTTON_HEIGHT)
     pygame.draw.rect(screen, PASS_BUTTON_COLOR, pass_button_rect)
@@ -64,7 +64,7 @@ def draw_board():
     player_color = "Black" if move_counter % 2 == 1 else "White"
     font = pygame.font.Font(None, 24)
     move_text = font.render("Move: {}, {}".format(move_counter, player_color), True, TEXT_COLOR)
-    move_text_rect = move_text.get_rect(x=WIDTH - Right_Empty_Space_Size + 20, y=20)
+    move_text_rect = move_text.get_rect(x=WIDTH - RIGHT_EMPTY_SPACE_SIZE + 20, y=20)
     screen.blit(move_text, move_text_rect)
 
 
@@ -224,11 +224,11 @@ def play_against_human():
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
-                row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                col = (mouse_x - BORDER_SIZE + CELL_SIZE // 2) // CELL_SIZE
+                row = (mouse_y - BORDER_SIZE + CELL_SIZE // 2) // CELL_SIZE
                 moves = calculate_possible_moves(board, current_player)
 
-                if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
+                if WIDTH - RIGHT_EMPTY_SPACE_SIZE < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
                     if precedent_pass:
                         result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
                         if result:
@@ -310,11 +310,11 @@ def play_against_computer():
                     precedent_pass = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
-                row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+                col = (mouse_x - BORDER_SIZE + CELL_SIZE // 2) // CELL_SIZE
+                row = (mouse_y - BORDER_SIZE + CELL_SIZE // 2) // CELL_SIZE
                 moves = calculate_possible_moves(board, current_player)
 
-                if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (
+                if WIDTH - RIGHT_EMPTY_SPACE_SIZE < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (
                             HEIGHT + PASS_BUTTON_HEIGHT) // 2:
                     if precedent_pass:
                         result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
