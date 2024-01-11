@@ -6,18 +6,17 @@ import sys
 pygame.init()
 
 # Constants
+GRID_SIZE = 9
 Board_Size = 721
 Border_Size = 50
 Right_Empty_Space_Size = 200
 WIDTH, HEIGHT = Board_Size + 2 * Border_Size + Right_Empty_Space_Size, Board_Size + 2 * Border_Size
-GRID_SIZE = 9
 CELL_SIZE = Board_Size // (GRID_SIZE - 1)
 PASS_BUTTON_WIDTH = 100
 PASS_BUTTON_HEIGHT = 40
 PASS_BUTTON_COLOR = (200, 200, 200)
 PASS_BUTTON_TEXT_COLOR = (0, 0, 0)
 TEXT_COLOR = (0, 0, 0)
-
 BACKGROUND_COLOR = (240, 214, 159)
 GRID_COLOR = (0, 0, 0)
 LINE_COLOR = (0, 0, 0)
@@ -25,10 +24,10 @@ STONE_BLACK = (0, 0, 0)
 STONE_WHITE = (255, 255, 255)
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Go Board')
+pygame.display.set_caption('GO Board')
 
 board = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]  # 0: empty, 1: black, 2: white
-current_player = 1  # Start with black
+current_player = 1  # 1: black to move, 2: white to move
 move_counter = 1
 
 
@@ -36,17 +35,21 @@ def draw_board():
     screen.fill(BACKGROUND_COLOR)
 
     for i in range(GRID_SIZE - 1):
-        pygame.draw.line(screen, GRID_COLOR, (Border_Size + i * CELL_SIZE, Border_Size),(Border_Size + i * CELL_SIZE, Border_Size + Board_Size), 1)
-        pygame.draw.line(screen, GRID_COLOR, (Border_Size, Border_Size + i * CELL_SIZE),(Border_Size + Board_Size, Border_Size + i * CELL_SIZE), 1)
+        pygame.draw.line(screen, GRID_COLOR, (Border_Size + i * CELL_SIZE, Border_Size),
+                         (Border_Size + i * CELL_SIZE, Border_Size + Board_Size), 1)
+        pygame.draw.line(screen, GRID_COLOR, (Border_Size, Border_Size + i * CELL_SIZE),
+                         (Border_Size + Board_Size, Border_Size + i * CELL_SIZE), 1)
 
     pygame.draw.rect(screen, LINE_COLOR, (Border_Size, Border_Size, Board_Size, Board_Size), 1)
 
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if board[row][col] == 1:
-                pygame.draw.circle(screen, STONE_BLACK, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE), CELL_SIZE // 2 - 5)
+                pygame.draw.circle(screen, STONE_BLACK, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE),
+                                   CELL_SIZE // 2 - 5)
             elif board[row][col] == 2:
-                pygame.draw.circle(screen, STONE_WHITE, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE), CELL_SIZE // 2 - 5)
+                pygame.draw.circle(screen, STONE_WHITE, (Border_Size + col * CELL_SIZE, Border_Size + row * CELL_SIZE),
+                                   CELL_SIZE // 2 - 5)
 
     pass_button_rect = pygame.Rect(WIDTH - Right_Empty_Space_Size + (Right_Empty_Space_Size - PASS_BUTTON_WIDTH) // 2,
                                    (HEIGHT - PASS_BUTTON_HEIGHT) // 2,
@@ -94,9 +97,8 @@ def show_endgame_dialog(winner):
                 return True  # Restart the game
 
 
-def bfs(go_board, row, col, black_score, white_score, visited):
+def bfs_endgame(go_board, row, col, black_score, white_score, visited):
     visited[row][col] = True
-
     queue = deque([(row, col)])
     territory_size = 0
     controlled_by_black = controlled_by_white = False
@@ -104,9 +106,11 @@ def bfs(go_board, row, col, black_score, white_score, visited):
         current_row, current_col = queue.popleft()
         territory_size += 1
 
-        neighbors = [(current_row - 1, current_col), (current_row + 1, current_col), (current_row, current_col - 1), (current_row, current_col + 1)]
+        neighbors = [(current_row - 1, current_col), (current_row + 1, current_col), (current_row, current_col - 1),
+                     (current_row, current_col + 1)]
         for neighbor_row, neighbor_col in neighbors:
-            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][neighbor_col]:
+            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][
+                neighbor_col]:
                 if go_board[neighbor_row][neighbor_col] == 0:
                     visited[neighbor_row][neighbor_col] = True
                     queue.append((neighbor_row, neighbor_col))
@@ -131,12 +135,48 @@ def calculate_winner(go_board, black_captured, white_captured, komi):
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if not visited[row][col] and go_board[row][col] == 0:
-                [black_score, white_score] = bfs(go_board, row, col, black_score, white_score, visited)
+                [black_score, white_score] = bfs_endgame(go_board, row, col, black_score, white_score, visited)
 
     if black_score > white_score:
         return "Black"
     else:
         return "White"
+
+
+def bfs_atari(go_board, row, col, visited, color):
+    visited[row][col] = True
+    queue = deque([(row, col)])
+    group = []
+    liberties = set()
+    while queue:
+        current_row, current_col = queue.popleft()
+        group.append([current_row, current_col])
+
+        neighbors = [(current_row - 1, current_col), (current_row + 1, current_col), (current_row, current_col - 1),
+                     (current_row, current_col + 1)]
+        for neighbor_row, neighbor_col in neighbors:
+            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][neighbor_col]:
+                if go_board[neighbor_row][neighbor_col] == color:
+                    visited[neighbor_row][neighbor_col] = True
+                    queue.append((neighbor_row, neighbor_col))
+                elif go_board[neighbor_row][neighbor_col] == 0:
+                    liberties.add((neighbor_row, neighbor_col))
+    if len(liberties) == 1:
+        return [group, liberties.pop()]
+    else:
+        return [[], ()]
+
+
+def calculate_all_atari_groups(go_board, color):  # 1: black, 2: white
+    atari = []
+    visited = [[False] * GRID_SIZE for _ in range(GRID_SIZE)]
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            if not visited[row][col] and go_board[row][col] == color:
+                answer = bfs_atari(go_board, row, col, visited, color)
+                if len(answer[0]) != 0:
+                    atari.append(answer)
+    return atari
 
 
 precedent_pass = False
@@ -151,12 +191,7 @@ while True:
             col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
             row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
 
-            if GRID_SIZE > row >= 0 == board[row][col] and 0 <= col < GRID_SIZE:
-                board[row][col] = current_player
-                current_player = 3 - current_player
-                move_counter += 1
-                precedent_pass = False
-            elif WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
+            if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
                 if precedent_pass:
                     result = show_endgame_dialog(calculate_winner(board, black_captured, white_captured, 6.5))
                     if result:
@@ -168,6 +203,27 @@ while True:
                     current_player = 3 - current_player
                     move_counter += 1
                     precedent_pass = True
+
+            elif GRID_SIZE > row >= 0 == board[row][col] and 0 <= col < GRID_SIZE:
+                atari_list = calculate_all_atari_groups(board, 3 - current_player)
+                for item in atari_list:
+                    if item[1] == (row, col):
+                        for piece in item[0]:
+                            board[piece[0]][piece[1]] = 0
+                        if current_player == 1:
+                            black_captured += len(item[0])
+                        else:
+                            white_captured += len(item[0])
+
+                board[row][col] = current_player
+                current_player = 3 - current_player
+                move_counter += 1
+                precedent_pass = False
+
+            print("Black atari: ", calculate_all_atari_groups(board, 1))
+            print("White atari: ", calculate_all_atari_groups(board, 2))
+            print("Black captured: ", black_captured)
+            print("White captured: ", white_captured)
 
     draw_board()
     pygame.display.flip()
