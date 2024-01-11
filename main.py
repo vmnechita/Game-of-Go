@@ -60,8 +60,9 @@ def draw_board():
     text_rect = text.get_rect(center=pass_button_rect.center)
     screen.blit(text, text_rect)
 
+    player_color = "Black" if move_counter % 2 == 1 else "White"
     font = pygame.font.Font(None, 24)
-    move_text = font.render("Move: {}".format(move_counter), True, TEXT_COLOR)
+    move_text = font.render("Move: {}, {}".format(move_counter, player_color), True, TEXT_COLOR)
     move_text_rect = move_text.get_rect(x=WIDTH - Right_Empty_Space_Size + 20, y=20)
     screen.blit(move_text, move_text_rect)
 
@@ -179,6 +180,39 @@ def calculate_all_atari_groups(go_board, color):  # 1: black, 2: white
     return atari
 
 
+def calculate_possible_moves(go_board, color):
+    answer = []
+    atari_list = calculate_all_atari_groups(go_board, 3 - color)
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            if go_board[row][col] == 0:
+                is_atari = False
+                for item in atari_list:
+                    if item[1] == (row, col):
+                        answer.append((row, col))
+                        is_atari = True
+                        break
+                if not is_atari:
+                    visited = [[False] * GRID_SIZE for _ in range(GRID_SIZE)]
+                    queue = deque([(row, col)])
+                    visited[row][col] = True
+                    while queue:
+                        current_row, current_col = queue.popleft()
+
+                        neighbors = [(current_row - 1, current_col), (current_row + 1, current_col), (current_row, current_col - 1), (current_row, current_col + 1)]
+                        for neighbor_row, neighbor_col in neighbors:
+                            if 0 <= neighbor_row < GRID_SIZE and 0 <= neighbor_col < GRID_SIZE and not visited[neighbor_row][neighbor_col]:
+                                if go_board[neighbor_row][neighbor_col] == color:
+                                    visited[neighbor_row][neighbor_col] = True
+                                    queue.append((neighbor_row, neighbor_col))
+                                elif go_board[neighbor_row][neighbor_col] == 0:
+                                    answer.append((row, col))
+                                    queue.clear()
+                                    break
+    return answer
+
+
+
 precedent_pass = False
 black_captured = white_captured = 0
 while True:
@@ -190,6 +224,7 @@ while True:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             col = (mouse_x - Border_Size + CELL_SIZE // 2) // CELL_SIZE
             row = (mouse_y - Border_Size + CELL_SIZE // 2) // CELL_SIZE
+            moves = calculate_possible_moves(board, current_player)
 
             if WIDTH - Right_Empty_Space_Size < mouse_x < WIDTH and (HEIGHT - PASS_BUTTON_HEIGHT) // 2 < mouse_y < (HEIGHT + PASS_BUTTON_HEIGHT) // 2:
                 if precedent_pass:
@@ -204,7 +239,7 @@ while True:
                     move_counter += 1
                     precedent_pass = True
 
-            elif GRID_SIZE > row >= 0 == board[row][col] and 0 <= col < GRID_SIZE:
+            elif (row, col) in moves:
                 atari_list = calculate_all_atari_groups(board, 3 - current_player)
                 for item in atari_list:
                     if item[1] == (row, col):
@@ -220,10 +255,10 @@ while True:
                 move_counter += 1
                 precedent_pass = False
 
-            print("Black atari: ", calculate_all_atari_groups(board, 1))
-            print("White atari: ", calculate_all_atari_groups(board, 2))
-            print("Black captured: ", black_captured)
-            print("White captured: ", white_captured)
+            #print("Black atari: ", calculate_all_atari_groups(board, 1))
+            #print("White atari: ", calculate_all_atari_groups(board, 2))
+            #print("Black captured: ", black_captured)
+            #print("White captured: ", white_captured)
 
     draw_board()
     pygame.display.flip()
